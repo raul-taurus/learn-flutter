@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart';
 
 void main() {
   debugPaintSizeEnabled = true;
-  runApp(buildNonMaterialApp());
+  runApp(buildVHApp());
 }
 
 buildMaterialApp() {
@@ -39,6 +39,19 @@ buildNonMaterialApp() {
             color: Colors.yellow,
             fontSize: 20.0),
       )));
+}
+
+buildVHApp() {
+  return MaterialApp(
+      home: Scaffold(
+          body: Column(
+    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    children: [
+      Expanded(flex: 2, child: Image.asset('images/Poellatschlucht.jpeg')),
+      Expanded(flex: 3, child: Image.asset('images/Poellatschlucht.jpeg')),
+      Expanded(flex: 2, child: Image.asset('images/Poellatschlucht.jpeg'))
+    ],
+  )));
 }
 
 class MyApp extends StatelessWidget {
