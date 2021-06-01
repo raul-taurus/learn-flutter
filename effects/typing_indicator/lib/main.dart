@@ -1,113 +1,331 @@
+import 'dart:math';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(
+    const MaterialApp(
+      home: ExampleIsTyping(),
+      debugShowCheckedModeBanner: false,
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+const _backgroundColor = Color(0xFF333333);
+
+class ExampleIsTyping extends StatefulWidget {
+  const ExampleIsTyping({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  _ExampleIsTypingState createState() => _ExampleIsTypingState();
+}
+
+class _ExampleIsTypingState extends State<ExampleIsTyping> {
+  bool _isSomeoneTyping = false;
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+    return Scaffold(
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: const Text('Typing Indicator'),
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      body: Column(
+        children: [
+          Expanded(
+            child: _buildMessages(),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: TypingIndicator(
+              showIndicator: _isSomeoneTyping,
+            ),
+          ),
+          _buildIsTypingSimulator(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessages() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      itemCount: 25,
+      reverse: true,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(left: 100.0),
+          child: FakeMessage(isBig: index.isOdd),
+        );
+      },
+    );
+  }
+
+  Widget _buildIsTypingSimulator() {
+    return Container(
+      color: Colors.grey,
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: CupertinoSwitch(
+          onChanged: (newValue) {
+            setState(() {
+              _isSomeoneTyping = newValue;
+            });
+          },
+          value: _isSomeoneTyping,
+        ),
+      ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
+class TypingIndicator extends StatefulWidget {
+  const TypingIndicator({
+    Key? key,
+    this.showIndicator = false,
+    this.bubbleColor = const Color(0xFF646b7f),
+    this.flashingCircleDarkColor = const Color(0xFF333333),
+    this.flashingCircleBrightColor = const Color(0xFFaec1dd),
+  }) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  final bool showIndicator;
+  final Color bubbleColor;
+  final Color flashingCircleDarkColor;
+  final Color flashingCircleBrightColor;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _TypingIndicatorState createState() => _TypingIndicatorState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _TypingIndicatorState extends State<TypingIndicator>
+    with TickerProviderStateMixin {
+  late AnimationController _appearanceController;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  late Animation<double> _indicatorSpaceAnimation;
+
+  late Animation<double> _smallBubbleAnimation;
+  late Animation<double> _mediumBubbleAnimation;
+  late Animation<double> _largeBubbleAnimation;
+
+  late AnimationController _repeatingController;
+  final List<Interval> _dotIntervals = const [
+    Interval(0.25, 0.8),
+    Interval(0.35, 0.9),
+    Interval(0.45, 1.0),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    _appearanceController = AnimationController(
+      vsync: this,
+    )..addListener(() {
+        setState(() {});
+      });
+
+    _indicatorSpaceAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      reverseCurve: const Interval(0.0, 1.0, curve: Curves.easeOut),
+    ).drive(Tween<double>(
+      begin: 0.0,
+      end: 60.0,
+    ));
+
+    _smallBubbleAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
+      reverseCurve: const Interval(0.0, 0.3, curve: Curves.easeOut),
+    );
+    _mediumBubbleAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.2, 0.7, curve: Curves.elasticOut),
+      reverseCurve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+    );
+    _largeBubbleAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.3, 1.0, curve: Curves.elasticOut),
+      reverseCurve: const Interval(0.5, 1.0, curve: Curves.easeOut),
+    );
+
+    _repeatingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    if (widget.showIndicator) {
+      _showIndicator();
+    }
+  }
+
+  @override
+  void didUpdateWidget(TypingIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.showIndicator != oldWidget.showIndicator) {
+      if (widget.showIndicator) {
+        _showIndicator();
+      } else {
+        _hideIndicator();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _appearanceController.dispose();
+    _repeatingController.dispose();
+    super.dispose();
+  }
+
+  void _showIndicator() {
+    _appearanceController
+      ..duration = const Duration(milliseconds: 750)
+      ..forward();
+    _repeatingController.repeat();
+  }
+
+  void _hideIndicator() {
+    _appearanceController
+      ..duration = const Duration(milliseconds: 150)
+      ..reverse();
+    _repeatingController.stop();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+    return AnimatedBuilder(
+      animation: _indicatorSpaceAnimation,
+      builder: (context, child) {
+        return SizedBox(
+          height: _indicatorSpaceAnimation.value,
+          child: child,
+        );
+      },
+      child: Stack(
+        children: [
+          _buildAnimatedBubble(
+            animation: _smallBubbleAnimation,
+            left: 8,
+            bottom: 8,
+            bubble: _buildCircleBubble(8),
+          ),
+          _buildAnimatedBubble(
+            animation: _mediumBubbleAnimation,
+            left: 10,
+            bottom: 10,
+            bubble: _buildCircleBubble(16),
+          ),
+          _buildAnimatedBubble(
+            animation: _largeBubbleAnimation,
+            left: 12,
+            bottom: 12,
+            bubble: _buildStatusBubble(),
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
+    );
+  }
+
+  Widget _buildAnimatedBubble({
+    required Animation<double> animation,
+    required double left,
+    required double bottom,
+    required Widget bubble,
+  }) {
+    return Positioned(
+      left: left,
+      bottom: bottom,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: animation.value,
+            alignment: Alignment.bottomLeft,
+            child: child,
+          );
+        },
+        child: bubble,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  Widget _buildCircleBubble(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: widget.bubbleColor,
+      ),
+    );
+  }
+
+  Widget _buildStatusBubble() {
+    return Container(
+      width: 85,
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(27),
+        color: widget.bubbleColor,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildFlashingCircle(0),
+          _buildFlashingCircle(1),
+          _buildFlashingCircle(2),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlashingCircle(int index) {
+    return AnimatedBuilder(
+      animation: _repeatingController,
+      builder: (context, child) {
+        final circleFlashPercent =
+            _dotIntervals[index].transform(_repeatingController.value);
+        final circleColorPercent = sin(pi * circleFlashPercent);
+
+        return Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color.lerp(widget.flashingCircleDarkColor,
+                widget.flashingCircleBrightColor, circleColorPercent),
+          ),
+        );
+      },
+    );
+  }
+}
+
+@immutable
+class FakeMessage extends StatelessWidget {
+  const FakeMessage({
+    Key? key,
+    required this.isBig,
+  }) : super(key: key);
+
+  final bool isBig;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 24.0),
+      height: isBig ? 128.0 : 36.0,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(8.0)),
+        color: Colors.grey.shade300,
+      ),
     );
   }
 }
