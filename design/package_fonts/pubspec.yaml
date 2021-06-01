@@ -21,6 +21,8 @@ environment:
   sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
+  awesome_font_package: 
+    path: ../awesome_font_package
   flutter:
     sdk: flutter
 
@@ -38,7 +40,12 @@ dev_dependencies:
 
 # The following section is specific to Flutter.
 flutter:
-
+  fonts:
+    - family: Raleway
+      fonts:
+        - asset: packages/awesome_font_package/Raleway-Regular.ttf
+        - asset: packages/awesome_font_package/Raleway-Italic.ttf
+          style: italic
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
